@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+body, div, img {
+  margin: 0;
+  padding: 0;
+}
+#sourceImage {
+  display: none;
+}
+#targetImage {
+  display: block;
+}
+#oldCanvas, #copyCanvas, #downloadContainer {
+  position: fixed;
+}
+#downloadContainer {
+  visibility: hidden;
+}
+#downloadContainer .label {
+  position: absolute;
+  width: 500px;
+  bottom: -20px;
+  font-family: sans-serif;
+  font-size: 17px;
+  color: #444;
+}
+#copyCanvas {
+  opacity: 0.5;
+  cursor: default;
+}
+</style>
+<script>
+function print(s) {
+  document.write(s + '<br />');
+}
+
+window.onload = function () {
+  var oldCanvas = document.getElementById('oldCanvas'),
+      oldContext = oldCanvas.getContext('2d'),
+      sourceImage = document.getElementById('sourceImage'),
+      targetImage = document.getElementById('targetImage'),
+      downloadContainer = document.getElementById('downloadContainer'),
+      copyCanvas = document.getElementById('copyCanvas'),
+      copyContext = copyCanvas.getContext('2d'),
+      width = oldCanvas.width = copyCanvas.width = sourceImage.width,
+      height = oldCanvas.height = copyCanvas.height = sourceImage.height;
+  oldContext.drawImage(sourceImage, 0, 0);
+  copyContext.fillStyle = '#000';
+  downloadContainer.style.left = width + 25 + 'px';
+  var hiddenCanvas = document.createElement('canvas'),
+      hiddenContext = hiddenCanvas.getContext('2d');
+  copyCanvas.onmousedown = function (event) {
+    var x0 = Math.max(0, Math.min(event.clientX, width)),
+        y0 = Math.max(0, Math.min(event.clientY, height));
+    function update(event) {
+      var x = Math.max(0, Math.min(event.clientX, width)),
+          y = Math.max(0, Math.min(event.clientY, height)),
+          dx = x - x0, w = Math.abs(dx),
+          dy = y - y0, h = Math.abs(dy);
+      copyContext.clearRect(0, 0, width, height);
+      copyContext.fillRect(x0, y0, dx, dy);
+      hiddenCanvas.width = w;
+      hiddenCanvas.height = h;
+      if (w*h == 0) {
+        downloadContainer.style.visibility = 'hidden';
+      } else {
+        downloadContainer.style.visibility = 'visible';
+        hiddenContext.drawImage(oldCanvas,
+          x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
+          0, 0, w, h);
+        targetImage.src = hiddenCanvas.toDataURL();
+        downloadContainer.style.visibility = (w*h == 0 ? 'hidden' : 'visible');
+        downloadContainer.style.top = Math.min(y0, y) + 'px';
+      }
+    };
+    update(event);
+    copyCanvas.onmousemove = update;
+    document.onmouseup = function (event) {
+      copyCanvas.onmousemove = undefined;
+      document.onmouseup = undefined;
+    };
+  };
+};
+</script>
+</head>
+<body>
+
+<img id="sourceImage" src="liberty.jpg" />
+
+<canvas id="oldCanvas"></canvas>
+
+<canvas id="copyCanvas"></canvas>
+
+<div id="downloadContainer">
+  <div class="label"> right-click on the image to download </div>
+  <img id="targetImage"></img>
+</div>
+
+</body>
+</html>

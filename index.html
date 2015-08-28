@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+body, div, canvas, img {
+  margin: 0;
+  padding: 0;
+}
+#targetImage {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+canvas {
+  display: block;
+}
+#oldCanvas, #selectCanvas, #downloadContainer {
+  position: fixed;
+}
+#downloadContainer {
+  visibility: hidden;
+}
+#downloadContainer .label {
+  position: absolute;
+  width: 500px;
+  bottom: -20px;
+  font-family: sans-serif;
+  font-size: 17px;
+  color: #444;
+}
+#selectCanvas {
+  opacity: 0.5;
+  cursor: default;
+}
+</style>
+<script>
+
+// Returns a random RGB string (RGBA if alpha is true).
+function randomColor(alpha) {
+  var rgb = [
+    Math.floor(Math.random() * 255),
+    Math.floor(Math.random() * 255),
+    Math.floor(Math.random() * 255)
+  ];
+  if (alpha) {
+    rgb.push(Math.random());
+  }
+  return 'rgb' + (alpha ? 'a' : '') + '(' + rgb.join(', ') + ')';
+}
+
+// Makes a random picture for use in the demonstration.
+function makeCanvas() {
+  var canvas = document.getElementById('oldCanvas'),
+      context = canvas.getContext('2d'),
+      width = canvas.width = 400,
+      height = canvas.height = 500;
+  context.fillStyle = randomColor();
+  context.fillRect(0, 0, width, height);
+  for (var i = 0; i < 200; ++i) {
+    var x = Math.floor(Math.random() * width),
+        y = Math.floor(Math.random() * height),
+        w = Math.floor(Math.random() * width/5),
+        h = Math.floor(Math.random() * height/5);
+    context.fillStyle = randomColor(true);
+    if (Math.floor(Math.random() * 2) === 0) {
+      context.fillRect(x - w / 2, y - h / 2, w, h);
+    } else {
+      context.beginPath();
+      context.arc(x, y, w, 0, 2 * Math.PI);
+      context.closePath();
+      context.fill();
+    }
+  }
+  return canvas;
+};
+
+window.onload = function () {
+  var oldCanvas = makeCanvas(),
+      oldContext = oldCanvas.getContext('2d'),
+      targetImage = document.getElementById('targetImage'),
+      downloadContainer = document.getElementById('downloadContainer'),
+      selectCanvas = document.getElementById('selectCanvas'),
+      selectContext = selectCanvas.getContext('2d'),
+      width = selectCanvas.width = oldCanvas.width,
+      height = selectCanvas.height = oldCanvas.height;
+  selectContext.fillStyle = '#000';
+  downloadContainer.style.left = width + 25 + 'px';
+  var clipCanvas = document.createElement('canvas'),
+      clipContext = clipCanvas.getContext('2d');
+  downloadContainer.appendChild(clipCanvas);
+  selectCanvas.onmousedown = function (event) {
+    var x0 = Math.max(0, Math.min(event.clientX, width)),
+        y0 = Math.max(0, Math.min(event.clientY, height));
+    targetImage.style.display = 'none';
+    function update(event) {
+      var x = Math.max(0, Math.min(event.clientX, width)),
+          y = Math.max(0, Math.min(event.clientY, height)),
+          dx = x - x0, w = Math.abs(dx),
+          dy = y - y0, h = Math.abs(dy);
+      selectContext.clearRect(0, 0, width, height);
+      selectContext.fillRect(x0, y0, dx, dy);
+      clipCanvas.width = w;
+      clipCanvas.height = h;
+      if (w*h == 0) {
+        downloadContainer.style.visibility = 'hidden';
+      } else {
+        downloadContainer.style.visibility = 'visible';
+        clipContext.drawImage(oldCanvas,
+          x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
+          0, 0, w, h);
+        downloadContainer.style.visibility = (w*h == 0 ? 'hidden' : 'visible');
+        downloadContainer.style.top = Math.min(y0, y) + 'px';
+      }
+    };
+    update(event);
+    selectCanvas.onmousemove = update;
+    document.onmouseup = function (event) {
+      selectCanvas.onmousemove = undefined;
+      document.onmouseup = undefined;
+      targetImage.src = clipCanvas.toDataURL();
+      targetImage.style.display = 'block';
+    };
+  };
+};
+
+</script>
+</head>
+<body>
+
+<canvas id="oldCanvas"></canvas>
+
+<canvas id="selectCanvas"></canvas>
+
+<div id="downloadContainer">
+  <div class="label"> right-click above to download this image </div>
+  <img id="targetImage">
+</div>
+
+</body>
+</html>
