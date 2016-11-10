@@ -25,7 +25,7 @@ canvas {
 #downloadContainer .label {
   position: absolute;
   width: 500px;
-  bottom: -20px;
+  bottom: -25px;
   font-family: sans-serif;
   font-size: 17px;
   color: #444;
@@ -40,7 +40,10 @@ var CanvasRegionToImage = (function () {
   'use strict';
 
   var width = 400,
-      height = 500;
+      height = 500,
+      ants = {
+        size: 3
+      };
 
   // Returns a random RGB string (RGBA if alpha is true).
   function randomColor(alpha) {
@@ -66,34 +69,65 @@ var CanvasRegionToImage = (function () {
     for (i = 0; i < 300; ++i) {
       x = Math.floor(Math.random() * width);
       y = Math.floor(Math.random() * height);
-      r = Math.floor(Math.random() * width/3);
+      r = Math.floor(width/9 + Math.random() * width/4);
       context.fillStyle = randomColor(true);
       context.save();
       context.translate(x, y);
       context.rotate(Math.random() * Math.PI);
-      context.scale(1, Math.random() * 2);
-      if (Math.floor(Math.random() * 2) === 0) {
+      context.scale(1, 0.2 + 1.6*Math.random());
+      if (Math.random() < 0.6) {
         context.fillRect(-r/2, -r/2, r/2, r/2);
       } else {
         context.beginPath();
-        context.arc(0, 0, r/2, 0, 2 * Math.PI);
-        context.closePath();
+        context.arc(0, 0, r/3, 0, 2 * Math.PI);
         context.fill();
+        context.closePath();
       }
       context.restore();
     }
     return canvas;
   }
 
-  function startAnts(canvas, x0, y0, dx, dy) {
-    var context = canvas.getContext('2d');
-    context.fillStyle = '#000';
-    context.fillRect(x0, y0, dx, dy);
+  function startAnts(canvas, x, y, w, h) {
+    var context = canvas.getContext('2d'),
+        c = 2*(w + h + 2),
+        startTime;
+    function update() {
+      var elapsed = Date.now() - startTime,
+          s = elapsed / 50;
+      while (s >= c) {
+        s -= c;
+      }
+      s = Math.round(s);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      if (!ants.running) {
+        return;
+      }
+      context.fillStyle = '#fff';
+      context.fillRect(x - 1, y - 1, w + 2, h + 2);
+      context.clearRect(x, y, w, h);
+      context.fillStyle = '#000';
+      if (s < w + 1) {
+        context.fillRect(x - 1 + s, y - 1, 1, 1);
+      } else if (s < w + h + 2) {
+        s -= w + 1;
+        context.fillRect(x + w, y - 1 + s, 1, 1);
+      } else if (s < 2*w + h + 3) {
+        s -= w + h + 2;
+        context.fillRect(x + w - s, y + h, 1, 1);
+      } else {
+        s -= 2*w + h + 3;
+        context.fillRect(x - 1, y + h - s, 1, 1);
+      }
+      requestAnimationFrame(update);
+    }
+    ants.running = true;
+    startTime = Date.now();
+    update();
   }
 
   function stopAnts(canvas) {
-    var context = canvas.getContext('2d');
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    ants.running = false;
   }
 
   function load() {
@@ -118,7 +152,7 @@ var CanvasRegionToImage = (function () {
           downloadContainer.style.visibility = 'hidden';
           return;
         }
-        startAnts(selectCanvas, x0, y0, dx, dy);
+        startAnts(selectCanvas, Math.min(x0, x), Math.min(y0, y), w, h);
         downloadContainer.style.visibility = 'visible';
         clipContext.drawImage(pictureCanvas,
           x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
@@ -159,7 +193,7 @@ onload = CanvasRegionToImage.load;
 <canvas id="selectCanvas"></canvas>
 
 <div id="downloadContainer">
-  <div class="label"> right-click above to download this image </div>
+  <div class="label"> right-click above to download as an image </div>
   <img id="targetImage">
 </div>
 
