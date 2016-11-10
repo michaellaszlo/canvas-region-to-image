@@ -60,23 +60,27 @@ var CanvasRegionToImage = (function () {
     var context = canvas.getContext('2d'),
         width = canvas.width,
         height = canvas.height,
-        i, x, y, w, h;
+        i, x, y, r;
     context.fillStyle = randomColor();
     context.fillRect(0, 0, width, height);
-    for (i = 0; i < 200; ++i) {
+    for (i = 0; i < 300; ++i) {
       x = Math.floor(Math.random() * width);
       y = Math.floor(Math.random() * height);
-      w = Math.floor(Math.random() * width/5);
-      h = Math.floor(Math.random() * height/5);
+      r = Math.floor(Math.random() * width/3);
       context.fillStyle = randomColor(true);
+      context.save();
+      context.translate(x, y);
+      context.rotate(Math.random() * Math.PI);
+      context.scale(1, Math.random() * 2);
       if (Math.floor(Math.random() * 2) === 0) {
-        context.fillRect(x - w / 2, y - h / 2, w, h);
+        context.fillRect(-r/2, -r/2, r/2, r/2);
       } else {
         context.beginPath();
-        context.arc(x, y, w, 0, 2 * Math.PI);
+        context.arc(0, 0, r/2, 0, 2 * Math.PI);
         context.closePath();
         context.fill();
       }
+      context.restore();
     }
     return canvas;
   }
