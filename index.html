@@ -16,7 +16,7 @@ body, div, canvas, img {
 canvas {
   display: block;
 }
-#oldCanvas, #selectCanvas, #downloadContainer {
+#pictureCanvas, #selectCanvas, #downloadContainer {
   position: fixed;
 }
 #downloadContainer {
@@ -36,100 +36,121 @@ canvas {
 }
 </style>
 <script>
+var CanvasRegionToImage = (function () {
+  'use strict';
 
-// Returns a random RGB string (RGBA if alpha is true).
-function randomColor(alpha) {
-  var rgb = [
-    Math.floor(Math.random() * 255),
-    Math.floor(Math.random() * 255),
-    Math.floor(Math.random() * 255)
-  ];
-  if (alpha) {
-    rgb.push(Math.random());
-  }
-  return 'rgb' + (alpha ? 'a' : '') + '(' + rgb.join(', ') + ')';
-}
+  var width = 400,
+      height = 500;
 
-// Makes a random picture for use in the demonstration.
-function makeCanvas() {
-  var canvas = document.getElementById('oldCanvas'),
-      context = canvas.getContext('2d'),
-      width = canvas.width = 400,
-      height = canvas.height = 500;
-  context.fillStyle = randomColor();
-  context.fillRect(0, 0, width, height);
-  for (var i = 0; i < 200; ++i) {
-    var x = Math.floor(Math.random() * width),
-        y = Math.floor(Math.random() * height),
-        w = Math.floor(Math.random() * width/5),
-        h = Math.floor(Math.random() * height/5);
-    context.fillStyle = randomColor(true);
-    if (Math.floor(Math.random() * 2) === 0) {
-      context.fillRect(x - w / 2, y - h / 2, w, h);
-    } else {
-      context.beginPath();
-      context.arc(x, y, w, 0, 2 * Math.PI);
-      context.closePath();
-      context.fill();
+  // Returns a random RGB string (RGBA if alpha is true).
+  function randomColor(alpha) {
+    var rgb = [
+      Math.floor(Math.random() * 255),
+      Math.floor(Math.random() * 255),
+      Math.floor(Math.random() * 255)
+    ];
+    if (alpha) {
+      rgb.push(Math.random());
     }
+    return 'rgb' + (alpha ? 'a' : '') + '(' + rgb.join(', ') + ')';
   }
-  return canvas;
-};
 
-window.onload = function () {
-  var oldCanvas = makeCanvas(),
-      oldContext = oldCanvas.getContext('2d'),
-      targetImage = document.getElementById('targetImage'),
-      downloadContainer = document.getElementById('downloadContainer'),
-      selectCanvas = document.getElementById('selectCanvas'),
-      selectContext = selectCanvas.getContext('2d'),
-      width = selectCanvas.width = oldCanvas.width,
-      height = selectCanvas.height = oldCanvas.height;
-  selectContext.fillStyle = '#000';
-  downloadContainer.style.left = width + 25 + 'px';
-  var clipCanvas = document.createElement('canvas'),
-      clipContext = clipCanvas.getContext('2d');
-  downloadContainer.appendChild(clipCanvas);
-  selectCanvas.onmousedown = function (event) {
-    var x0 = Math.max(0, Math.min(event.clientX, width)),
-        y0 = Math.max(0, Math.min(event.clientY, height));
-    targetImage.style.display = 'none';
-    function update(event) {
-      var x = Math.max(0, Math.min(event.clientX, width)),
-          y = Math.max(0, Math.min(event.clientY, height)),
-          dx = x - x0, w = Math.abs(dx),
-          dy = y - y0, h = Math.abs(dy);
-      selectContext.clearRect(0, 0, width, height);
-      selectContext.fillRect(x0, y0, dx, dy);
-      clipCanvas.width = w;
-      clipCanvas.height = h;
-      if (w*h == 0) {
-        downloadContainer.style.visibility = 'hidden';
+  // Paints the given canvas with random circles and rectangles.
+  function paintRandomPicture(canvas) {
+    var context = canvas.getContext('2d'),
+        width = canvas.width,
+        height = canvas.height,
+        i, x, y, w, h;
+    context.fillStyle = randomColor();
+    context.fillRect(0, 0, width, height);
+    for (i = 0; i < 200; ++i) {
+      x = Math.floor(Math.random() * width);
+      y = Math.floor(Math.random() * height);
+      w = Math.floor(Math.random() * width/5);
+      h = Math.floor(Math.random() * height/5);
+      context.fillStyle = randomColor(true);
+      if (Math.floor(Math.random() * 2) === 0) {
+        context.fillRect(x - w / 2, y - h / 2, w, h);
       } else {
+        context.beginPath();
+        context.arc(x, y, w, 0, 2 * Math.PI);
+        context.closePath();
+        context.fill();
+      }
+    }
+    return canvas;
+  }
+
+  function startAnts(canvas, x0, y0, dx, dy) {
+    var context = canvas.getContext('2d');
+    context.fillStyle = '#000';
+    context.fillRect(x0, y0, dx, dy);
+  }
+
+  function stopAnts(canvas) {
+    var context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function load() {
+    var targetImage = document.getElementById('targetImage'),
+        downloadContainer = document.getElementById('downloadContainer'),
+        pictureCanvas = document.getElementById('pictureCanvas'),
+        selectCanvas = document.getElementById('selectCanvas'),
+        clipCanvas = document.createElement('canvas'),
+        clipContext = clipCanvas.getContext('2d');
+    selectCanvas.onmousedown = function (event) {
+      var x0 = Math.max(0, Math.min(event.clientX, width)),
+          y0 = Math.max(0, Math.min(event.clientY, height));
+      function mousemove(event) {
+        var x = Math.max(0, Math.min(event.clientX, width)),
+            y = Math.max(0, Math.min(event.clientY, height)),
+            dx = x - x0, w = Math.abs(dx),
+            dy = y - y0, h = Math.abs(dy);
+        clipCanvas.width = w;
+        clipCanvas.height = h;
+        stopAnts(selectCanvas);
+        if (w*h == 0) {
+          downloadContainer.style.visibility = 'hidden';
+          return;
+        }
+        startAnts(selectCanvas, x0, y0, dx, dy);
         downloadContainer.style.visibility = 'visible';
-        clipContext.drawImage(oldCanvas,
+        clipContext.drawImage(pictureCanvas,
           x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
           0, 0, w, h);
         downloadContainer.style.visibility = (w*h == 0 ? 'hidden' : 'visible');
         downloadContainer.style.top = Math.min(y0, y) + 'px';
       }
+      function mouseup(event) {
+        selectCanvas.onmousemove = undefined;
+        document.onmouseup = undefined;
+        targetImage.src = clipCanvas.toDataURL();
+        targetImage.style.display = 'block';
+      }
+      selectCanvas.onmousemove = mousemove;
+      document.onmouseup = mouseup;
+      targetImage.style.display = 'none';
+      mousemove(event);
     };
-    update(event);
-    selectCanvas.onmousemove = update;
-    document.onmouseup = function (event) {
-      selectCanvas.onmousemove = undefined;
-      document.onmouseup = undefined;
-      targetImage.src = clipCanvas.toDataURL();
-      targetImage.style.display = 'block';
-    };
-  };
-};
+    pictureCanvas.width = selectCanvas.width = width;
+    pictureCanvas.height = selectCanvas.height = height;
+    downloadContainer.style.left = width + 25 + 'px';
+    downloadContainer.appendChild(clipCanvas);
+    paintRandomPicture(pictureCanvas);
+  }
 
+  return {
+    load: load
+  };
+})();
+
+onload = CanvasRegionToImage.load;
 </script>
 </head>
 <body>
 
-<canvas id="oldCanvas"></canvas>
+<canvas id="pictureCanvas"></canvas>
 
 <canvas id="selectCanvas"></canvas>
 
