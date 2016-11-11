@@ -95,42 +95,46 @@ var CanvasRegionToImage = (function () {
     this.speed = speed;
   }
   Ants.prototype.animate = function () {
-    var elapsed = Date.now() - this.lapTime,
-        s = Math.round(elapsed / this.speed),
-        x = this.left,
-        y = this.top,
-        w = this.width,
-        h = this.height,
-        c = 2*(w + h + 2),
-        canvas = this.canvas,
+    var canvas = this.canvas,
         context = this.context,
-        laps;
-    if (s > c) {
-      laps = Math.floor(s / c);
-      s -= laps * c;
-      this.lapTime += laps * c * this.speed;
+        self = this;
+    function update() {
+      var elapsed = Date.now() - self.lapTime,
+          s = Math.round(elapsed / self.speed),
+          x = self.left,
+          y = self.top,
+          w = self.width,
+          h = self.height,
+          c = 2*(w + h + 2),
+          laps;
+      if (s > c) {
+        laps = Math.floor(s / c);
+        s -= laps * c;
+        self.lapTime += laps * c * self.speed;
+      }
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      if (!self.running) {
+        return;
+      }
+      context.fillStyle = '#fff';
+      context.fillRect(x - 1, y - 1, w + 2, h + 2);
+      context.clearRect(x, y, w, h);
+      context.fillStyle = '#000';
+      if (s < w + 1) {
+        context.fillRect(x - 1 + s, y - 1, 1, 1);
+      } else if (s < w + h + 2) {
+        s -= w + 1;
+        context.fillRect(x + w, y - 1 + s, 1, 1);
+      } else if (s < 2*w + h + 3) {
+        s -= w + h + 2;
+        context.fillRect(x + w - s, y + h, 1, 1);
+      } else {
+        s -= 2*w + h + 3;
+        context.fillRect(x - 1, y + h - s, 1, 1);
+      }
+      requestAnimationFrame(update);
     }
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    if (!this.running) {
-      return;
-    }
-    context.fillStyle = '#fff';
-    context.fillRect(x - 1, y - 1, w + 2, h + 2);
-    context.clearRect(x, y, w, h);
-    context.fillStyle = '#000';
-    if (s < w + 1) {
-      context.fillRect(x - 1 + s, y - 1, 1, 1);
-    } else if (s < w + h + 2) {
-      s -= w + 1;
-      context.fillRect(x + w, y - 1 + s, 1, 1);
-    } else if (s < 2*w + h + 3) {
-      s -= w + h + 2;
-      context.fillRect(x + w - s, y + h, 1, 1);
-    } else {
-      s -= 2*w + h + 3;
-      context.fillRect(x - 1, y + h - s, 1, 1);
-    }
-    requestAnimationFrame(this.animate.bind(this));
+    update();
   };
   Ants.prototype.set = function (x, y, w, h, speed) {
     this.left = x;
