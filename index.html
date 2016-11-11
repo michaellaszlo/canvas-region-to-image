@@ -89,24 +89,29 @@ var CanvasRegionToImage = (function () {
     return canvas;
   }
 
-  function animateAnts() {
-    var elapsed = Date.now() - ants.lapTime,
-        s = Math.round(elapsed / ants.speed),
-        x = ants.left,
-        y = ants.top,
-        w = ants.width,
-        h = ants.height,
+  function Ants(canvas, speed) {
+    this.canvas = canvas;
+    this.context = canvas.getContext('2d');
+    this.speed = speed;
+  }
+  Ants.prototype.animate = function () {
+    var elapsed = Date.now() - this.lapTime,
+        s = Math.round(elapsed / this.speed),
+        x = this.left,
+        y = this.top,
+        w = this.width,
+        h = this.height,
         c = 2*(w + h + 2),
-        canvas = ants.canvas,
-        context = ants.context,
+        canvas = this.canvas,
+        context = this.context,
         laps;
     if (s > c) {
       laps = Math.floor(s / c);
       s -= laps * c;
-      ants.lapTime += laps * c * ants.speed;
+      this.lapTime += laps * c * this.speed;
     }
     context.clearRect(0, 0, canvas.width, canvas.height);
-    if (!ants.running) {
+    if (!this.running) {
       return;
     }
     context.fillStyle = '#fff';
@@ -125,29 +130,25 @@ var CanvasRegionToImage = (function () {
       s -= 2*w + h + 3;
       context.fillRect(x - 1, y + h - s, 1, 1);
     }
-    requestAnimationFrame(animateAnts);
-  }
-
-  function updateAnts(x, y, w, h) {
-    ants.left = x;
-    ants.top = y;
-    ants.width = w;
-    ants.height = h;
-    if (!ants.running) {
-      ants.running = true;
-      animateAnts();
+    requestAnimationFrame(this.animate.bind(this));
+  };
+  Ants.prototype.set = function (x, y, w, h, speed) {
+    this.left = x;
+    this.top = y;
+    this.width = w;
+    this.height = h;
+    if (speed) {
+      this.speed = speed;
     }
-  }
-
-  function startAnts(canvas) {
-    ants.canvas = canvas;
-    ants.context = canvas.getContext('2d');
-    ants.lapTime = Date.now();
-  }
-
-  function stopAnts() {
-    ants.running = false;
-  }
+    if (!this.running) {
+      this.running = true;
+      this.lapTime = Date.now();
+      this.animate();
+    }
+  };
+  Ants.prototype.halt = function () {
+    this.running = false;
+  };
 
   function load() {
     var targetImage = document.getElementById('targetImage'),
@@ -155,7 +156,8 @@ var CanvasRegionToImage = (function () {
         pictureCanvas = document.getElementById('pictureCanvas'),
         selectCanvas = document.getElementById('selectCanvas'),
         clipCanvas = document.createElement('canvas'),
-        clipContext = clipCanvas.getContext('2d');
+        clipContext = clipCanvas.getContext('2d'),
+        selectAnts = new Ants(selectCanvas, ants.speed);
     downloadContainer.style.left = width + 25 + 'px';
     downloadContainer.appendChild(clipCanvas);
     pictureCanvas.width = selectCanvas.width = width;
@@ -173,10 +175,10 @@ var CanvasRegionToImage = (function () {
         clipCanvas.height = h;
         if (w*h == 0) {
           downloadContainer.style.visibility = 'hidden';
-          stopAnts();
+          selectAnts.halt();
           return;
         }
-        updateAnts(Math.min(x0, x), Math.min(y0, y), w, h);
+        selectAnts.set(Math.min(x0, x), Math.min(y0, y), w, h);
         downloadContainer.style.visibility = 'visible';
         clipContext.drawImage(pictureCanvas,
           x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
@@ -193,7 +195,6 @@ var CanvasRegionToImage = (function () {
       selectCanvas.onmousemove = mousemove;
       document.onmouseup = mouseup;
       targetImage.style.display = 'none';
-      startAnts(selectCanvas);
       mousemove(event);
     };
   }
