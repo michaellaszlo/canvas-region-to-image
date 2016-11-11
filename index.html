@@ -89,57 +89,60 @@ var CanvasRegionToImage = (function () {
     return canvas;
   }
 
-  function updateAnts(x, y, w, h) {
-    var canvas = ants.canvas,
+  function animateAnts() {
+    var elapsed = Date.now() - ants.lapTime,
+        s = Math.round(elapsed / ants.speed),
+        x = ants.left,
+        y = ants.top,
+        w = ants.width,
+        h = ants.height,
+        c = 2*(w + h + 2),
+        canvas = ants.canvas,
         context = ants.context,
-        id = ants.running.length;
-    ants.running[id - 1] = false;
-    ants.running.push(true);
-    console.log(id);
-    ants.circumference = 2*(w + h + 2);
-    function animate() {
-      var elapsed = Date.now() - ants.lapTime,
-          s = Math.round(elapsed / ants.speed),
-          c = ants.circumference,
-          laps;
-      if (s > c) {
-        //console.log('before', c, s, ants.lapTime);
-        laps = Math.floor(s / c);
-        s -= laps * c;
-        ants.lapTime += laps * c * ants.speed;
-        //console.log('after', c, s, ants.lapTime);
-      }
-      //console.log(s);
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      if (!ants.running[id]) {
-        return;
-      }
-      context.fillStyle = '#fff';
-      context.fillRect(x - 1, y - 1, w + 2, h + 2);
-      context.clearRect(x, y, w, h);
-      context.fillStyle = '#000';
-      if (s < w + 1) {
-        context.fillRect(x - 1 + s, y - 1, 1, 1);
-      } else if (s < w + h + 2) {
-        s -= w + 1;
-        context.fillRect(x + w, y - 1 + s, 1, 1);
-      } else if (s < 2*w + h + 3) {
-        s -= w + h + 2;
-        context.fillRect(x + w - s, y + h, 1, 1);
-      } else {
-        s -= 2*w + h + 3;
-        context.fillRect(x - 1, y + h - s, 1, 1);
-      }
-      requestAnimationFrame(animate);
+        laps;
+    if (s > c) {
+      laps = Math.floor(s / c);
+      s -= laps * c;
+      ants.lapTime += laps * c * ants.speed;
     }
-    animate();
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!ants.running) {
+      return;
+    }
+    context.fillStyle = '#fff';
+    context.fillRect(x - 1, y - 1, w + 2, h + 2);
+    context.clearRect(x, y, w, h);
+    context.fillStyle = '#000';
+    if (s < w + 1) {
+      context.fillRect(x - 1 + s, y - 1, 1, 1);
+    } else if (s < w + h + 2) {
+      s -= w + 1;
+      context.fillRect(x + w, y - 1 + s, 1, 1);
+    } else if (s < 2*w + h + 3) {
+      s -= w + h + 2;
+      context.fillRect(x + w - s, y + h, 1, 1);
+    } else {
+      s -= 2*w + h + 3;
+      context.fillRect(x - 1, y + h - s, 1, 1);
+    }
+    requestAnimationFrame(animateAnts);
+  }
+
+  function updateAnts(x, y, w, h) {
+    ants.left = x;
+    ants.top = y;
+    ants.width = w;
+    ants.height = h;
+    if (!ants.running) {
+      ants.running = true;
+      animateAnts();
+    }
   }
 
   function startAnts(canvas) {
     ants.canvas = canvas;
     ants.context = canvas.getContext('2d');
     ants.lapTime = Date.now();
-    ants.running = [ false ];
   }
 
   function stopAnts() {
@@ -170,6 +173,7 @@ var CanvasRegionToImage = (function () {
         clipCanvas.height = h;
         if (w*h == 0) {
           downloadContainer.style.visibility = 'hidden';
+          stopAnts();
           return;
         }
         updateAnts(Math.min(x0, x), Math.min(y0, y), w, h);
@@ -185,7 +189,6 @@ var CanvasRegionToImage = (function () {
         document.onmouseup = undefined;
         targetImage.src = clipCanvas.toDataURL();
         targetImage.style.display = 'block';
-        stopAnts();
       }
       selectCanvas.onmousemove = mousemove;
       document.onmouseup = mouseup;
