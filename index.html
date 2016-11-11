@@ -42,7 +42,8 @@ var CanvasRegionToImage = (function () {
   var width = 400,
       height = 500,
       ants = {
-        size: 3
+        size: 3,
+        speed: 50
       };
 
   // Returns a random RGB string (RGBA if alpha is true).
@@ -88,17 +89,23 @@ var CanvasRegionToImage = (function () {
     return canvas;
   }
 
-  function startAnts(canvas, x, y, w, h) {
-    var context = canvas.getContext('2d'),
-        c = 2*(w + h + 2),
-        startTime;
-    function update() {
-      var elapsed = Date.now() - startTime,
-          s = elapsed / 50;
-      while (s >= c) {
-        s -= c;
+  function updateAnts(x, y, w, h) {
+    var canvas = ants.canvas,
+        context = ants.context;
+    ants.circumference = 2*(w + h + 2);
+    function animate() {
+      var elapsed = Date.now() - ants.lapTime,
+          s = Math.round(elapsed / ants.speed),
+          c = ants.circumference,
+          laps;
+      if (s > c) {
+        console.log('before', c, s, ants.lapTime);
+        laps = Math.floor(s / c);
+        s -= laps * c;
+        ants.lapTime += laps * c * ants.speed;
+        console.log('after', c, s, ants.lapTime);
       }
-      s = Math.round(s);
+      console.log(s);
       context.clearRect(0, 0, canvas.width, canvas.height);
       if (!ants.running) {
         return;
@@ -119,14 +126,19 @@ var CanvasRegionToImage = (function () {
         s -= 2*w + h + 3;
         context.fillRect(x - 1, y + h - s, 1, 1);
       }
-      requestAnimationFrame(update);
+      requestAnimationFrame(animate);
     }
-    ants.running = true;
-    startTime = Date.now();
-    update();
+    animate();
   }
 
-  function stopAnts(canvas) {
+  function startAnts(canvas) {
+    ants.canvas = canvas;
+    ants.context = canvas.getContext('2d');
+    ants.lapTime = Date.now();
+    ants.running = true;
+  }
+
+  function stopAnts() {
     ants.running = false;
   }
 
@@ -137,6 +149,11 @@ var CanvasRegionToImage = (function () {
         selectCanvas = document.getElementById('selectCanvas'),
         clipCanvas = document.createElement('canvas'),
         clipContext = clipCanvas.getContext('2d');
+    downloadContainer.style.left = width + 25 + 'px';
+    downloadContainer.appendChild(clipCanvas);
+    pictureCanvas.width = selectCanvas.width = width;
+    pictureCanvas.height = selectCanvas.height = height;
+    paintRandomPicture(pictureCanvas);
     selectCanvas.onmousedown = function (event) {
       var x0 = Math.max(0, Math.min(event.clientX, width)),
           y0 = Math.max(0, Math.min(event.clientY, height));
@@ -147,12 +164,11 @@ var CanvasRegionToImage = (function () {
             dy = y - y0, h = Math.abs(dy);
         clipCanvas.width = w;
         clipCanvas.height = h;
-        stopAnts(selectCanvas);
         if (w*h == 0) {
           downloadContainer.style.visibility = 'hidden';
           return;
         }
-        startAnts(selectCanvas, Math.min(x0, x), Math.min(y0, y), w, h);
+        updateAnts(Math.min(x0, x), Math.min(y0, y), w, h);
         downloadContainer.style.visibility = 'visible';
         clipContext.drawImage(pictureCanvas,
           x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
@@ -165,17 +181,14 @@ var CanvasRegionToImage = (function () {
         document.onmouseup = undefined;
         targetImage.src = clipCanvas.toDataURL();
         targetImage.style.display = 'block';
+        stopAnts();
       }
       selectCanvas.onmousemove = mousemove;
       document.onmouseup = mouseup;
       targetImage.style.display = 'none';
+      startAnts(selectCanvas);
       mousemove(event);
     };
-    pictureCanvas.width = selectCanvas.width = width;
-    pictureCanvas.height = selectCanvas.height = height;
-    downloadContainer.style.left = width + 25 + 'px';
-    downloadContainer.appendChild(clipCanvas);
-    paintRandomPicture(pictureCanvas);
   }
 
   return {
