@@ -91,7 +91,11 @@ var CanvasRegionToImage = (function () {
 
   function updateAnts(x, y, w, h) {
     var canvas = ants.canvas,
-        context = ants.context;
+        context = ants.context,
+        id = ants.running.length;
+    ants.running[id - 1] = false;
+    ants.running.push(true);
+    console.log(id);
     ants.circumference = 2*(w + h + 2);
     function animate() {
       var elapsed = Date.now() - ants.lapTime,
@@ -99,15 +103,15 @@ var CanvasRegionToImage = (function () {
           c = ants.circumference,
           laps;
       if (s > c) {
-        console.log('before', c, s, ants.lapTime);
+        //console.log('before', c, s, ants.lapTime);
         laps = Math.floor(s / c);
         s -= laps * c;
         ants.lapTime += laps * c * ants.speed;
-        console.log('after', c, s, ants.lapTime);
+        //console.log('after', c, s, ants.lapTime);
       }
-      console.log(s);
+      //console.log(s);
       context.clearRect(0, 0, canvas.width, canvas.height);
-      if (!ants.running) {
+      if (!ants.running[id]) {
         return;
       }
       context.fillStyle = '#fff';
@@ -135,7 +139,7 @@ var CanvasRegionToImage = (function () {
     ants.canvas = canvas;
     ants.context = canvas.getContext('2d');
     ants.lapTime = Date.now();
-    ants.running = true;
+    ants.running = [ false ];
   }
 
   function stopAnts() {
