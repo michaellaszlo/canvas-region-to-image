@@ -53,22 +53,26 @@ var CanvasRegionToImage = (function () {
     return canvas;
   }
 
-  function makeStripes(options) {
+  // Returns an HTMLCanvasElement for use as a pattern. Although MDN says that
+  //  context.createPattern can take ImageData, Chrome does not accept it.
+  function makeSwatch(options) {
     var canvas = document.createElement('canvas'),
         context = canvas.getContext('2d'),
         numStripes = 5,
         span = options.length + options.gap,
         swatchSize = 2*span,
+        swatchCanvas = document.createElement('canvas'),
+        swatchContext = swatchCanvas.getContext('2d'),
+        pattern,
         i, j, x;
     document.body.appendChild(canvas);
-    canvas.width = canvas.height = 15 * numStripes/2 * span;
+    canvas.width = canvas.height = numStripes/2 * span;
     canvas.style.backgroundColor = '#eee';
     canvas.style.position = 'absolute';
     canvas.style.right = canvas.style.bottom = '10px';
     context.beginPath();
     for (i = 0; i < 2*numStripes; ++i) {
       x = options.length / 2 + i*span;
-      console.log(x, options.length);
       context.moveTo(0, x);
       context.lineTo(x, 0);
     }
@@ -76,21 +80,17 @@ var CanvasRegionToImage = (function () {
     context.strokeStyle = '#000';
     context.lineWidth = options.length;
     context.stroke();
-    for (i = 0; i < 10; ++i) {
-      for (j = 0; j < 10; ++j) {
-        context.drawImage(canvas, 2, 2, swatchSize, swatchSize,
-            10 + numStripes*span + i*swatchSize,
-            10 + numStripes*span + j*swatchSize,
-            swatchSize, swatchSize);
-      }
-    }
+    swatchCanvas.width = swatchCanvas.height = swatchSize;
+    swatchContext.drawImage(canvas, 2, 2, swatchSize, swatchSize,
+        0, 0, swatchSize, swatchSize);
+    return swatchCanvas;
   }
 
   function Ants(canvas, options) {
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
     this.speed = options.speed;
-    makeStripes(options);
+    this.pattern = this.context.createPattern(makeSwatch(options), 'repeat');
   }
   Ants.prototype.animate = function () {
     var canvas = this.canvas,
@@ -118,6 +118,8 @@ var CanvasRegionToImage = (function () {
       context.fillRect(x - 1, y - 1, w + 2, h + 2);
       context.clearRect(x, y, w, h);
       context.fillStyle = '#000';
+      context.fillStyle = self.pattern;
+      context.fillRect(x, y, w, h);
       if (s < w + 1) {
         context.fillRect(x - 1 + s, y - 1, 1, 1);
       } else if (s < w + h + 2) {
