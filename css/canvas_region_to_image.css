@@ -26,6 +26,5 @@ canvas {
   color: #444;
 }
 #selectCanvas {
-  opacity: 0.5;
   cursor: default;
 }

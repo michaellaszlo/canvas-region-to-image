@@ -3,11 +3,11 @@ var CanvasRegionToImage = (function () {
 
   var width = 400,
       height = 500,
-      antsOptions = {
-        length: 2,  // the length of an ant, in pixels
-        gap: 3,  // the gap between ants, in pixels
-        thickness: 3,  // the thickness of the marching ant column
-        speed: 1/20  // an ant's forward motion in pixels per millisecond
+      marqueeOptions = {
+        length: 3,  // the length of a marquee stroke, in pixels
+        gap: 4,  // the gap between marquee strokes, in pixels
+        border: 1,  // the width of the marquee border
+        speed: 1/120  // the marquee's linear speed in pixels per millisecond
       };
 
   // Returns a random RGB string (RGBA if alpha is true).
@@ -67,9 +67,8 @@ var CanvasRegionToImage = (function () {
         i, j, x;
     document.body.appendChild(canvas);
     canvas.width = canvas.height = numStripes/2 * span;
-    canvas.style.backgroundColor = '#eee';
-    canvas.style.position = 'absolute';
-    canvas.style.right = canvas.style.bottom = '10px';
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
     context.beginPath();
     for (i = 0; i < 2*numStripes; ++i) {
       x = options.length / 2 + i*span;
@@ -86,13 +85,17 @@ var CanvasRegionToImage = (function () {
     return swatchCanvas;
   }
 
-  function Ants(canvas, options) {
+  function Marquee(canvas, options) {
+    var swatch;
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
     this.speed = options.speed;
-    this.pattern = this.context.createPattern(makeSwatch(options), 'repeat');
+    this.border = options.border;
+    swatch = makeSwatch(options);
+    this.pattern = this.context.createPattern(swatch, 'repeat');
+    this.patternSize = swatch.width;
   }
-  Ants.prototype.animate = function () {
+  Marquee.prototype.animate = function () {
     var canvas = this.canvas,
         context = this.context,
         self = this;
@@ -103,40 +106,27 @@ var CanvasRegionToImage = (function () {
           y = self.top,
           w = self.width,
           h = self.height,
-          c = 2*(w + h + 2),
           laps;
-      if (s > c) {
-        laps = Math.floor(s / c);
-        s -= laps * c;
-        self.lapTime += laps * c / self.speed;
+      if (s > self.patternSize) {
+        laps = Math.floor(s / self.patternSize);
+        s -= laps * self.patternSize;
+        self.lapTime += laps * self.patternSize / self.speed;
       }
       context.clearRect(0, 0, canvas.width, canvas.height);
       if (!self.running) {
         return;
       }
-      context.fillStyle = '#fff';
-      context.fillRect(x - 1, y - 1, w + 2, h + 2);
-      context.clearRect(x, y, w, h);
-      context.fillStyle = '#000';
+      context.translate(-s, 0);
       context.fillStyle = self.pattern;
-      context.fillRect(x, y, w, h);
-      if (s < w + 1) {
-        context.fillRect(x - 1 + s, y - 1, 1, 1);
-      } else if (s < w + h + 2) {
-        s -= w + 1;
-        context.fillRect(x + w, y - 1 + s, 1, 1);
-      } else if (s < 2*w + h + 3) {
-        s -= w + h + 2;
-        context.fillRect(x + w - s, y + h, 1, 1);
-      } else {
-        s -= 2*w + h + 3;
-        context.fillRect(x - 1, y + h - s, 1, 1);
-      }
+      context.fillRect(s + x - self.border, y - self.border,
+          w + 2*self.border, h + 2*self.border);
+      context.clearRect(s + x, y, w, h);
+      context.translate(s, 0);
       requestAnimationFrame(update);
     }
     update();
   };
-  Ants.prototype.set = function (x, y, w, h) {
+  Marquee.prototype.set = function (x, y, w, h) {
     this.left = x;
     this.top = y;
     this.width = w;
@@ -147,7 +137,7 @@ var CanvasRegionToImage = (function () {
       this.animate();
     }
   };
-  Ants.prototype.halt = function () {
+  Marquee.prototype.halt = function () {
     this.running = false;
   };
 
@@ -158,7 +148,7 @@ var CanvasRegionToImage = (function () {
         selectCanvas = document.getElementById('selectCanvas'),
         clipCanvas = document.createElement('canvas'),
         clipContext = clipCanvas.getContext('2d'),
-        selectAnts = new Ants(selectCanvas, antsOptions);
+        selectMarquee = new Marquee(selectCanvas, marqueeOptions);
     downloadContainer.style.left = width + 25 + 'px';
     downloadContainer.appendChild(clipCanvas);
     pictureCanvas.width = selectCanvas.width = width;
@@ -176,10 +166,10 @@ var CanvasRegionToImage = (function () {
         clipCanvas.height = h;
         if (w*h == 0) {
           downloadContainer.style.visibility = 'hidden';
-          selectAnts.halt();
+          selectMarquee.halt();
           return;
         }
-        selectAnts.set(Math.min(x0, x), Math.min(y0, y), w, h);
+        selectMarquee.set(Math.min(x0, x), Math.min(y0, y), w, h);
         downloadContainer.style.visibility = 'visible';
         clipContext.drawImage(pictureCanvas,
           x0 + Math.min(0, dx), y0 + Math.min(0, dy), w, h,
