@@ -1,0 +1,31 @@
+body, div, canvas, img {
+  margin: 0;
+  padding: 0;
+}
+#targetImage {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+canvas {
+  display: block;
+}
+#pictureCanvas, #selectCanvas, #downloadContainer {
+  position: fixed;
+}
+#downloadContainer {
+  visibility: hidden;
+}
+#downloadContainer .label {
+  position: absolute;
+  width: 500px;
+  bottom: -25px;
+  font-family: sans-serif;
+  font-size: 17px;
+  color: #444;
+}
+#selectCanvas {
+  opacity: 0.5;
+  cursor: default;
+}
