@@ -57,14 +57,17 @@ var CanvasRegionToImage = (function () {
     var canvas = document.createElement('canvas'),
         context = canvas.getContext('2d'),
         numStripes = 5,
-        i, x;
-    canvas.width = canvas.height = numStripes/2*(options.length + options.gap);
+        span = options.length + options.gap,
+        swatchSize = 2*span,
+        i, j, x;
+    document.body.appendChild(canvas);
+    canvas.width = canvas.height = 15 * numStripes/2 * span;
     canvas.style.backgroundColor = '#eee';
     canvas.style.position = 'absolute';
-    canvas.style.left = canvas.style.bottom = '10px';
+    canvas.style.right = canvas.style.bottom = '10px';
     context.beginPath();
     for (i = 0; i < 2*numStripes; ++i) {
-      x = options.length / 2 + i*(options.length + options.gap);
+      x = options.length / 2 + i*span;
       console.log(x, options.length);
       context.moveTo(0, x);
       context.lineTo(x, 0);
@@ -73,7 +76,14 @@ var CanvasRegionToImage = (function () {
     context.strokeStyle = '#000';
     context.lineWidth = options.length;
     context.stroke();
-    document.body.appendChild(canvas);
+    for (i = 0; i < 10; ++i) {
+      for (j = 0; j < 10; ++j) {
+        context.drawImage(canvas, 2, 2, swatchSize, swatchSize,
+            10 + numStripes*span + i*swatchSize,
+            10 + numStripes*span + j*swatchSize,
+            swatchSize, swatchSize);
+      }
+    }
   }
 
   function Ants(canvas, options) {
