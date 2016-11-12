@@ -4,8 +4,8 @@ var CanvasRegionToImage = (function () {
   var width = 400,
       height = 500,
       antsOptions = {
-        length: 5,  // the length of an ant, in pixels
-        gap: 2,  // the gap between ants, in pixels
+        length: 2,  // the length of an ant, in pixels
+        gap: 3,  // the gap between ants, in pixels
         thickness: 3,  // the thickness of the marching ant column
         speed: 1/20  // an ant's forward motion in pixels per millisecond
       };
@@ -53,10 +53,34 @@ var CanvasRegionToImage = (function () {
     return canvas;
   }
 
+  function makeStripes(options) {
+    var canvas = document.createElement('canvas'),
+        context = canvas.getContext('2d'),
+        numStripes = 5,
+        i, x;
+    canvas.width = canvas.height = numStripes/2*(options.length + options.gap);
+    canvas.style.backgroundColor = '#eee';
+    canvas.style.position = 'absolute';
+    canvas.style.left = canvas.style.bottom = '10px';
+    context.beginPath();
+    for (i = 0; i < 2*numStripes; ++i) {
+      x = options.length / 2 + i*(options.length + options.gap);
+      console.log(x, options.length);
+      context.moveTo(0, x);
+      context.lineTo(x, 0);
+    }
+    context.closePath();
+    context.strokeStyle = '#000';
+    context.lineWidth = options.length;
+    context.stroke();
+    document.body.appendChild(canvas);
+  }
+
   function Ants(canvas, options) {
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
     this.speed = options.speed;
+    makeStripes(options);
   }
   Ants.prototype.animate = function () {
     var canvas = this.canvas,
